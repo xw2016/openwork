@@ -1,0 +1,1052 @@
+openapi: 3.0.3
+info:
+  title: OpenWork 可信任务市场 API
+  description: |
+    基于产品设计文档 V1.0 的接口规范。
+    认证方式：JWT Bearer Token（除登录/注册外所有接口）。
+  version: 1.0.0
+  contact:
+    name: OpenWork Team
+
+servers:
+  - url: https://api.trustabletask.com/v1
+    description: 生产环境
+  - url: http://localhost:8000/v1
+    description: 本地开发
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "参数校验失败"
+        detail:
+          type: string
+          example: "budget must be greater than 0"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_type:
+          type: string
+          enum: [employer, freelancer, admin]
+        nickname:
+          type: string
+        avatar:
+          type: string
+          format: uri
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        credit_score:
+          type: integer
+        status:
+          type: string
+          enum: [active, frozen, deleted]
+        created_at:
+          type: string
+          format: date-time
+
+    IntentBlueprint:
+      type: object
+      properties:
+        context:
+          type: object
+          properties:
+            current_status:
+              type: string
+            attempted_solutions:
+              type: string
+            consequence:
+              type: string
+            success_definition:
+              type: string
+        constraint:
+          type: object
+          properties:
+            budget:
+              type: number
+            deadline:
+              type: string
+              format: date
+            red_lines:
+              type: array
+              items:
+                type: string
+        hypothesis:
+          type: object
+          properties:
+            core_hypothesis:
+              type: string
+            preferred_direction:
+              type: string
+            reference_cases:
+              type: array
+              items:
+                type: string
+            unknowns:
+              type: array
+              items:
+                type: string
+
+    Contract:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        contract_no:
+          type: string
+          example: "CONTRACT-20260715-0001"
+        employer_id:
+          type: string
+          format: uuid
+        freelancer_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        task_type:
+          type: string
+          enum: [execution, exploration]
+        intent_blueprint:
+          $ref: '#/components/schemas/IntentBlueprint'
+        deliverables:
+          type: array
+          items:
+            $ref: '#/components/schemas/Deliverable'
+        base_amount:
+          type: number
+          format: decimal
+        bonus_amount:
+          type: number
+          format: decimal
+        bonus_condition:
+          type: object
+          nullable: true
+        commission_rate:
+          type: number
+          format: decimal
+        deadline:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, published, matched, executing, pending_review, completed, terminated, expired]
+        created_at:
+          type: string
+          format: date-time
+
+    Deliverable:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        deliverable_index:
+          type: integer
+        name:
+          type: string
+        required_format:
+          type: string
+        acceptance_criteria:
+          type: object
+        file_url:
+          type: string
+          nullable: true
+        acceptance_status:
+          type: string
+          enum: [pending, passed, failed]
+
+    AcceptanceReport:
+      type: object
+      properties:
+        contract_id:
+          type: string
+          format: uuid
+        submit_version:
+          type: integer
+        result:
+          type: string
+          enum: [all_pass, partial_fail]
+        settlement_triggered:
+          type: boolean
+        report:
+          type: object
+          properties:
+            deliverables:
+              type: array
+              items:
+                type: object
+                properties:
+                  index:
+                    type: integer
+                  name:
+                    type: string
+                  status:
+                    type: string
+                    enum: [passed, failed]
+                  checks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        description:
+                          type: string
+                        result:
+                          type: boolean
+
+    CreditInfo:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        score:
+          type: integer
+        one_pass_rate:
+          type: number
+          format: float
+        avg_delay_days:
+          type: number
+          format: float
+        completion_rate:
+          type: number
+          format: float
+        employer_rating:
+          type: number
+          format: float
+        detail:
+          type: object
+
+    BlockchainRecord:
+      type: object
+      properties:
+        node_type:
+          type: string
+          enum: [contract_create, escrow_deposit, freelancer_accept, deliverable_submit, acceptance_complete, payment_release, contract_terminate]
+        content_hash:
+          type: string
+        block_hash:
+          type: string
+        block_height:
+          type: integer
+          format: int64
+        timestamp:
+          type: string
+          format: date-time
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ============ 认证接口 ============
+  /auth/register:
+    post:
+      tags: [认证]
+      summary: 用户注册
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, verification_code, nickname, user_type]
+              properties:
+                phone:
+                  type: string
+                  example: "13800138000"
+                verification_code:
+                  type: string
+                  example: "123456"
+                nickname:
+                  type: string
+                  example: "张三"
+                user_type:
+                  type: string
+                  enum: [employer, freelancer]
+      responses:
+        '200':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                      refresh_token:
+                        type: string
+                      user:
+                        $ref: '#/components/schemas/User'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [认证]
+      summary: 用户登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, verification_code]
+              properties:
+                phone:
+                  type: string
+                verification_code:
+                  type: string
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 0
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                      refresh_token:
+                        type: string
+                      user:
+                        $ref: '#/components/schemas/User'
+
+  /auth/refresh:
+    post:
+      tags: [认证]
+      summary: 刷新Token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: 刷新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+
+  /users/me:
+    get:
+      tags: [用户]
+      summary: 获取当前用户信息
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    $ref: '#/components/schemas/User'
+
+  # ============ 意图建模接口 ============
+  /intent/session/create:
+    post:
+      tags: [意图建模]
+      summary: 创建意图建模会话
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                initial_description:
+                  type: string
+                  example: "我们准备推一款桂花冷萃新品，想在线上做一轮推广，预算大概20万，主要覆盖年轻女性。"
+      responses:
+        '200':
+          description: 会话创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      session_id:
+                        type: string
+                      first_question:
+                        type: string
+                        description: "AI的第一个追问"
+
+  /intent/session/{session_id}/message:
+    post:
+      tags: [意图建模]
+      summary: 发送对话消息
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  example: "从3%降到1.8%，大概持续了两周"
+      responses:
+        '200':
+          description: AI回复
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      reply:
+                        type: string
+                      round:
+                        type: integer
+                        description: "当前追问轮次（最多5轮）"
+                      is_complete:
+                        type: boolean
+                        description: "是否已完成意图收集"
+                      blueprint:
+                        $ref: '#/components/schemas/IntentBlueprint'
+
+  /intent/session/{session_id}/blueprint:
+    get:
+      tags: [意图建模]
+      summary: 获取意图蓝图
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      blueprint:
+                        $ref: '#/components/schemas/IntentBlueprint'
+
+    put:
+      tags: [意图建模]
+      summary: 修改意图蓝图
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentBlueprint'
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      blueprint:
+                        $ref: '#/components/schemas/IntentBlueprint'
+
+  # ============ 任务发布接口 ============
+  /contracts:
+    post:
+      tags: [任务发布]
+      summary: 创建合约（基于意图蓝图）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [blueprint_id, title, task_type, base_amount, deadline]
+              properties:
+                blueprint_id:
+                  type: string
+                  example: "bp_20260715_001"
+                title:
+                  type: string
+                  example: "桂花冷萃新品线上营销方案"
+                task_type:
+                  type: string
+                  enum: [execution, exploration]
+                base_amount:
+                  type: number
+                  example: 8000
+                bonus_amount:
+                  type: number
+                  example: 5000
+                bonus_condition:
+                  type: object
+                  properties:
+                    metric:
+                      type: string
+                    threshold:
+                      type: number
+                    operator:
+                      type: string
+                tracking_period:
+                  type: integer
+                  example: 30
+                deadline:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: 合约创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    $ref: '#/components/schemas/Contract'
+
+  /contracts/{id}:
+    get:
+      tags: [任务发布]
+      summary: 获取合约详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    $ref: '#/components/schemas/Contract'
+
+  /contracts/{id}/deliverables:
+    put:
+      tags: [任务发布]
+      summary: 调整交付物清单
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deliverables:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Deliverable'
+      responses:
+        '200':
+          description: 调整成功
+
+  /contracts/{id}/publish:
+    post:
+      tags: [任务发布]
+      summary: 发布任务+创建支付
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 发布成功，返回支付信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      contract:
+                        $ref: '#/components/schemas/Contract'
+                      payment_url:
+                        type: string
+                        description: "支付链接"
+
+  # ============ 任务市场接口 ============
+  /market/tasks:
+    get:
+      tags: [任务市场]
+      summary: 任务列表（支持筛选）
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, executing, completed]
+        - name: task_type
+          in: query
+          schema:
+            type: string
+            enum: [execution, exploration]
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: budget_min
+          in: query
+          schema:
+            type: number
+        - name: budget_max
+          in: query
+          schema:
+            type: number
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, budget_high, budget_low]
+            default: newest
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      page_size:
+                        type: integer
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Contract'
+
+  /market/tasks/{id}:
+    get:
+      tags: [任务市场]
+      summary: 任务详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    $ref: '#/components/schemas/Contract'
+
+  # ============ 接单与执行接口 ============
+  /contracts/{id}/accept:
+    post:
+      tags: [接单执行]
+      summary: 确认接单
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 接单成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    $ref: '#/components/schemas/Contract'
+
+  /contracts/{id}/deliverables/{deliverable_id}/upload:
+    post:
+      tags: [接单执行]
+      summary: 上传交付物
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: deliverable_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      file_url:
+                        type: string
+                      file_hash:
+                        type: string
+
+  /contracts/{id}/submit:
+    post:
+      tags: [接单执行]
+      summary: 提交验收
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 提交成功，进入AI验收流程
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "pending_review"
+
+  # ============ AI验收接口 ============
+  /contracts/{id}/acceptance/{version}:
+    get:
+      tags: [AI验收]
+      summary: 获取验收报告
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    $ref: '#/components/schemas/AcceptanceReport'
+
+  /contracts/{id}/acceptance/dispute:
+    post:
+      tags: [AI验收]
+      summary: 申请人工复核
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  description: "申请复核的理由"
+      responses:
+        '200':
+          description: 申请已提交
+
+  # ============ 信用记录接口 ============
+  /users/{id}/credit:
+    get:
+      tags: [信用记录]
+      summary: 获取用户信用分与明细
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    $ref: '#/components/schemas/CreditInfo'
+
+  /users/{id}/credit/history:
+    get:
+      tags: [信用记录]
+      summary: 获取信用记录历史
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      items:
+                        type: array
+                        items:
+                          type: object
+
+  # ============ 链上存证接口 ============
+  /contracts/{id}/blockchain:
+    get:
+      tags: [链上存证]
+      summary: 获取合约存证记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      records:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BlockchainRecord'
+
+  /blockchain/verify:
+    post:
+      tags: [链上存证]
+      summary: 哈希验证
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content_hash]
+              properties:
+                content_hash:
+                  type: string
+                  description: "待验证的SHA-256哈希"
+      responses:
+        '200':
+          description: 验证结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      verified:
+                        type: boolean
+                      block_hash:
+                        type: string
+                      block_height:
+                        type: integer
+                      timestamp:
+                        type: string
+                        format: date-time
