@@ -1,0 +1,72 @@
+# ============================================================
+# OpenWork 开发环境 Docker Compose 覆盖配置
+# 使用方式: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ============================================================
+
+services:
+  # ---- 后端开发模式：挂载本地代码，启用热重载 ----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: openwork-backend-dev
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/tests:/app/tests
+      - ./backend/requirements.txt:/app/requirements.txt
+      - ./backend/alembic.ini:/app/alembic.ini
+    environment:
+      DEBUG: "true"
+      DATABASE_URL: "postgresql+asyncpg://openwork:openwork123@postgres:5432/openwork_db"
+      REDIS_URL: "redis://redis:6379/0"
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app/app
+      --log-level debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ---- 前端开发模式：使用 Vite 开发服务器 ----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: openwork-frontend-dev
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    command: npm run dev -- --host 0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---- PostgreSQL 开发配置 ----
+  postgres:
+    ports:
+      - "5432:5432"
+
+  # ---- Redis 开发配置 ----
+  redis:
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes

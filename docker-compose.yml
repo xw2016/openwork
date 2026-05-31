@@ -1,0 +1,112 @@
+# ============================================================
+# OpenWork 生产环境 Docker Compose 配置
+# 使用方式: docker compose up -d
+# ============================================================
+
+services:
+  # ---- PostgreSQL 数据库 ----
+  postgres:
+    image: postgres:15-alpine
+    container_name: openwork-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-openwork}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openwork123}
+      POSTGRES_DB: ${POSTGRES_DB:-openwork_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - openwork-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-openwork} -d ${POSTGRES_DB:-openwork_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Redis 缓存 ----
+  redis:
+    image: redis:7-alpine
+    container_name: openwork-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - openwork-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+
+  # ---- 后端 (FastAPI) ----
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: openwork-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-openwork}:${POSTGRES_PASSWORD:-openwork123}@postgres:5432/${POSTGRES_DB:-openwork_db}"
+      REDIS_URL: "redis://redis:6379/0"
+      SECRET_KEY: ${SECRET_KEY:-change-me-to-a-random-secret-key-at-least-32-chars}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-30}
+      AES_SECRET_KEY: ${AES_SECRET_KEY:-change-me-to-a-32-byte-hex-string-00000000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      DEBUG: ${DEBUG:-false}
+      ADMIN_PHONE: ${ADMIN_PHONE:-13800000000}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123456}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - openwork-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---- 前端 (Nginx 静态服务) ----
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: openwork-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    networks:
+      - openwork-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+# ---- 数据卷 ----
+volumes:
+  postgres_data:
+    name: openwork-postgres-data
+  redis_data:
+    name: openwork-redis-data
+
+# ---- 网络 ----
+networks:
+  openwork-network:
+    name: openwork-network
+    driver: bridge

@@ -1,0 +1,10 @@
+# OpenWork 前端 Docker 构建排除文件
+node_modules/
+.git/
+.gitignore
+dist/
+*.md
+.vscode/
+.idea/
+*.log
+.DS_Store

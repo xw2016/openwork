@@ -1,0 +1,32 @@
+"""
+存证相关 Pydantic 模型
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+from app.models.blockchain import NodeType
+
+
+class BlockchainRecordResponse(BaseModel):
+    """链上存证记录响应"""
+    id: uuid.UUID
+    contract_id: uuid.UUID
+    node_type: NodeType
+    content_hash: str
+    block_hash: str
+    block_height: Optional[int] = None
+    timestamp: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class BlockchainVerifyRequest(BaseModel):
+    """链上验证请求"""
+    contract_id: uuid.UUID = Field(..., description="合约ID")
+    content_hash: str = Field(..., description="待验证的内容哈希")

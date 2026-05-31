@@ -1,0 +1,17 @@
+# OpenWork 后端 Docker 构建排除文件
+.venv/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+*.md
+tests/
+setup_*.sh
+check_deps.sh
+install_deps.sh
+test_install.sh
