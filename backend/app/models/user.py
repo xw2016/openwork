@@ -46,10 +46,16 @@ class User(Base):
     )
     nickname: Mapped[str] = mapped_column(String(50), nullable=False)
     avatar: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    phone: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(20), unique=True, nullable=True, index=True)
     email: Mapped[Optional[str]] = mapped_column(String(100), unique=True, nullable=True, index=True)
     real_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     id_card: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    domain_tags: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True, default=list)
+    verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     credit_score: Mapped[int] = mapped_column(Integer, default=600, nullable=False)
     credit_detail: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     status: Mapped[UserStatus] = mapped_column(

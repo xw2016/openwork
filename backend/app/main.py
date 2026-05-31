@@ -21,6 +21,7 @@ from app.middleware.security import (
     RequestSizeLimitMiddleware,
     SecurityHeadersMiddleware,
 )
+from app.middleware.permission_middleware import PermissionMiddleware
 from app.utils.logger import setup_logging
 from app.modules.auth.router import router as auth_router
 from app.modules.intent.router import router as intent_router
@@ -30,6 +31,7 @@ from app.modules.acceptance.router import router as acceptance_router
 from app.modules.payment.router import router as payment_router
 from app.modules.credit.router import router as credit_router
 from app.modules.blockchain.router import router as blockchain_router
+from app.modules.profile.router import router as profile_router
 
 
 @asynccontextmanager
@@ -101,7 +103,10 @@ def create_app() -> FastAPI:
         login_limit=settings.RATE_LIMIT_LOGIN_PER_MINUTE,
     )
 
-    # 3. 安全响应头
+    # 3. 权限检查中间件（在限流之后、安全头之前）
+    app.add_middleware(PermissionMiddleware)
+
+    # 4. 安全响应头
     app.add_middleware(SecurityHeadersMiddleware)
 
     # ---- CORS 中间件 ----
@@ -152,6 +157,7 @@ def create_app() -> FastAPI:
     app.include_router(payment_router)
     app.include_router(credit_router)
     app.include_router(blockchain_router)
+    app.include_router(profile_router)
 
     return app
 

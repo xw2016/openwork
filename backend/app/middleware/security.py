@@ -54,8 +54,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "camera=(), microphone=(), geolocation=()"
         )
         # 移除服务器指纹头（如果存在）
-        response.headers.pop("server", None)
-        response.headers.pop("X-Powered-By", None)
+        if "server" in response.headers:
+            del response.headers["server"]
+        if "X-Powered-By" in response.headers:
+            del response.headers["X-Powered-By"]
         return response
 
 

@@ -21,6 +21,19 @@ class AcceptanceRequest(BaseModel):
     result: AcceptanceResult = Field(..., description="验收结果")
 
 
+class RejectDeliverableRequest(BaseModel):
+    """拒绝交付物请求"""
+    rejection_reason: str = Field(
+        ..., min_length=1, max_length=2000, description="拒绝原因"
+    )
+
+
+class ResubmitDeliverableRequest(BaseModel):
+    """重提交付物请求"""
+    file_url: str = Field(..., max_length=500, description="新文件URL")
+    file_hash: str = Field(..., max_length=128, description="新文件SHA-256哈希")
+
+
 class AcceptanceRecordResponse(BaseModel):
     """验收记录响应"""
     id: uuid.UUID
