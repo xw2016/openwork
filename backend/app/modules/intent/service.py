@@ -275,19 +275,42 @@ async def skip_question(
     db: AsyncSession,
     question_id: str,
     reason: str,
+    blueprint_id: Optional[UUID] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     跳过追问
 
-    遍历所有蓝图的追问列表，找到匹配的 question_id 并标记跳过。
-    （实际生产中可维护 question_id -> blueprint_id 的索引）
+    如果提供 blueprint_id，直接定位目标蓝图（O(1)）。
+    否则遍历所有蓝图查找（兼容旧调用方式，但性能较差）。
 
     :param db: 数据库 session
     :param question_id: 追问ID
     :param reason: 跳过原因
+    :param blueprint_id: 可选，直接指定蓝图ID以避免全表扫描
     :return: 被跳过的追问，未找到返回 None
     """
-    # 查询所有蓝图（含追问的）
+    if blueprint_id is not None:
+        # 直接定位目标蓝图 — O(1) 查找
+        blueprint = await get_blueprint(db, blueprint_id)
+        if blueprint is None:
+            return None
+        await db.refresh(blueprint)
+        questions = blueprint.content.get("questions", [])
+        skipped = skip_question_in_list(questions, question_id, reason)
+        if skipped is not None:
+            content = dict(blueprint.content)
+            content["questions"] = questions
+            blueprint.content = content
+            await db.commit()
+            logger.info(
+                "question_skipped_in_db",
+                question_id=question_id,
+                blueprint_id=str(blueprint.id),
+            )
+            return skipped
+        return None
+
+    # 回退：遍历所有蓝图（性能较差，建议调用方传入 blueprint_id）
     result = await db.execute(
         select(IntentBlueprint).where(
             IntentBlueprint.content["questions"].astext.isnot(None)

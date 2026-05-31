@@ -119,8 +119,7 @@ def encrypt_field(plaintext: str, key_manager: Optional[KeyManager] = None) -> s
     try:
         from Crypto.Cipher import AES
     except ImportError:
-        logger.warning("pycryptodome_not_installed", fallback="plaintext")
-        return plaintext
+        raise RuntimeError("pycryptodome is required for field encryption. Install it: pip install pycryptodome")
 
     # 随机 12 字节 nonce（GCM 推荐）
     nonce = os.urandom(12)
@@ -154,7 +153,7 @@ def decrypt_field(encrypted_text: str, key_manager: Optional[KeyManager] = None)
     try:
         from Crypto.Cipher import AES
     except ImportError:
-        return encrypted_text
+        raise RuntimeError("pycryptodome is required for field decryption. Install it: pip install pycryptodome")
 
     try:
         # 解析加密数据

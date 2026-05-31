@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
@@ -60,8 +60,40 @@ class LoginGuard:
     def __init__(self):
         # 键: 手机号或邮箱, 值: AccountLockInfo
         self._lock_store: dict[str, AccountLockInfo] = defaultdict(AccountLockInfo)
-        # 登录日志列表
-        self._login_logs: list[dict] = []
+        # 登录日志列表（bounded deque to prevent unbounded memory growth）
+        # NOTE: For production, consider migrating to Redis for persistence
+        # and shared state across multiple worker processes.
+        self._login_logs: deque[dict] = deque(maxlen=10000)
+        self._cleanup_counter: int = 0
+
+    def _maybe_cleanup_stale_entries(self) -> None:
+        """Periodically remove stale lock_store entries to prevent memory leak.
+
+        Called every 100 operations (approx). Removes entries where the lock
+        has expired AND all failure attempts are older than FAILURE_RECORD_TTL.
+        """
+        self._cleanup_counter += 1
+        if self._cleanup_counter < 100:
+            return
+        self._cleanup_counter = 0
+
+        now = time.time()
+        stale_keys: list[str] = []
+        for key, info in self._lock_store.items():
+            # Only consider entries that are not currently locked
+            if info.lock_until > now:
+                continue
+            # If all attempts are expired (or there are none), mark for cleanup
+            if not info.attempts or all(
+                now - a.timestamp >= FAILURE_RECORD_TTL for a in info.attempts
+            ):
+                stale_keys.append(key)
+
+        for key in stale_keys:
+            del self._lock_store[key]
+
+        if stale_keys:
+            logger.info("stale_lock_entries_cleaned", count=len(stale_keys))
 
     def _get_lock_key(self, phone: Optional[str], email: Optional[str]) -> str:
         """生成锁定键（优先使用手机号）"""
@@ -110,6 +142,8 @@ class LoginGuard:
         key = self._get_lock_key(phone, email)
         info = self._lock_store[key]
         now = time.time()
+
+        self._maybe_cleanup_stale_entries()
 
         # 清理过期的失败记录
         info.attempts = [a for a in info.attempts if now - a.timestamp < FAILURE_RECORD_TTL]
@@ -168,6 +202,8 @@ class LoginGuard:
         记录登录成功，清除失败计数
         """
         key = self._get_lock_key(phone, email)
+
+        self._maybe_cleanup_stale_entries()
 
         # 清除该账户的失败记录
         if key in self._lock_store:

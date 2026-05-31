@@ -50,6 +50,17 @@ async def create_escrow(
     if contract.employer_id != employer_id:
         raise ValueError("只有合约的雇主可以创建资金托管")
 
+    # 检查是否已有待处理的托管，防止重复创建
+    existing = await db.execute(
+        select(Transaction).where(
+            Transaction.contract_id == contract_id,
+            Transaction.transaction_type == TransactionType.ESCROW,
+            Transaction.status == TransactionStatus.PENDING,
+        )
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise ValueError("该合约已有待处理的资金托管，不能重复创建")
+
     # 校验金额匹配：雇主应支付 base_amount + bonus_amount
     expected_amount = contract.base_amount + contract.bonus_amount
     if amount != expected_amount:

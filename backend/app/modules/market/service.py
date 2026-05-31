@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import List, Optional, Tuple
 from uuid import UUID
 
+import re as _re
 import structlog
 from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,16 @@ from app.models.contract import Contract, ContractStatus, TaskType
 from app.models.user import User
 
 logger = structlog.get_logger("modules.market.service")
+
+
+# ============================================================
+# Helpers
+# ============================================================
+
+
+def _escape_like(value: str) -> str:
+    """Escape LIKE special characters % _ and \\."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 # ============================================================
@@ -64,7 +75,8 @@ async def list_market_tasks(
 
     # 关键词搜索标题
     if keyword:
-        base_conditions.append(Contract.title.ilike(f"%{keyword}%"))
+        safe_keyword = _escape_like(keyword)
+        base_conditions.append(Contract.title.ilike(f"%{safe_keyword}%"))
 
     # 金额范围筛选
     if min_amount is not None:
@@ -200,7 +212,7 @@ async def bid_task(
     - contract.status = in_progress
     """
     result = await db.execute(
-        select(Contract).where(Contract.id == contract_id)
+        select(Contract).where(Contract.id == contract_id).with_for_update()
     )
     contract = result.scalar_one_or_none()
 

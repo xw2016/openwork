@@ -5,8 +5,7 @@
 
 from __future__ import annotations
 
-import random
-import string
+import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
@@ -55,12 +54,11 @@ def _validate_transition(current: ContractStatus, target: ContractStatus) -> Non
 
 def _generate_contract_no() -> str:
     """
-    生成合约编号，格式：OW-YYYYMMDD-XXXX
-    XXXX 为4位随机数字
+    生成合约编号，格式：OW-YYYYMMDD-XXXXXXXX (UUID前8位hex)
     """
     date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
-    random_suffix = "".join(random.choices(string.digits, k=4))
-    return f"OW-{date_str}-{random_suffix}"
+    unique_suffix = uuid.uuid4().hex[:8].upper()
+    return f"OW-{date_str}-{unique_suffix}"
 
 
 # ============================================================

@@ -6,6 +6,7 @@ from app.models.deliverable import Deliverable
 from app.models.acceptance import AcceptanceRecord
 from app.models.transaction import Transaction
 from app.models.blockchain import BlockchainRecord
+from app.models.intent_blueprint import IntentBlueprint
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "AcceptanceRecord",
     "Transaction",
     "BlockchainRecord",
+    "IntentBlueprint",
 ]

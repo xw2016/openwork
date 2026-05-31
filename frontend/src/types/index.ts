@@ -1,63 +1,89 @@
 // OpenWork 平台 TypeScript 类型定义
+// 与后端 SQLAlchemy 模型对齐
 
 /** 用户角色 */
-export type UserRole = 'employer' | 'freelancer'
+export type UserRole = 'employer' | 'freelancer' | 'admin'
+
+/** 用户状态 */
+export type UserStatus = 'active' | 'disabled' | 'pending'
 
 /** 用户信息 */
 export interface User {
   id: string
-  username: string
-  email: string
-  role: UserRole
+  user_type: UserRole
+  nickname: string
+  avatar: string | null
+  avatar_url: string | null
+  phone: string | null
+  email: string | null
+  bio: string | null
   credit_score: number
+  completed_tasks: number
+  total_tasks: number
+  status: UserStatus
   created_at: string
+  updated_at: string
 }
 
 /** 登录请求 */
 export interface LoginRequest {
-  username: string
+  phone?: string
+  email?: string
   password: string
 }
 
 /** 注册请求 */
 export interface RegisterRequest {
-  username: string
-  email: string
+  phone?: string
+  email?: string
   password: string
-  role: UserRole
+  nickname: string
+  user_type: UserRole
 }
 
 /** 登录响应 */
 export interface LoginResponse {
   access_token: string
+  refresh_token: string
   token_type: string
 }
 
-/** 合约状态 */
+/** 合约状态 — 与后端 ContractStatus 枚举对齐 */
 export type ContractStatus =
   | 'draft'           // 草稿
-  | 'pending_accept'  // 待接单
+  | 'pending'         // 待接单
   | 'in_progress'     // 进行中
-  | 'submitted'       // 已提交交付物
-  | 'reviewing'       // AI验收中
+  | 'review'          // 验收中
   | 'completed'       // 已完成
+  | 'terminated'      // 已终止
   | 'disputed'        // 争议中
-  | 'cancelled'       // 已取消
 
-/** 合约（任务） */
+/** 任务类型 */
+export type TaskType =
+  | 'development'
+  | 'design'
+  | 'copywriting'
+  | 'translation'
+  | 'data_labeling'
+  | 'consulting'
+  | 'other'
+
+/** 合约（任务）— 与后端 Contract 模型对齐 */
 export interface Contract {
   id: string
-  title: string
-  description: string
+  contract_no: string
   employer_id: string
   freelancer_id: string | null
-  budget: number
+  title: string
+  task_type: TaskType
+  base_amount: number
+  bonus_amount: number
+  deliverables: Record<string, unknown>
   status: ContractStatus
-  intent_model: string       // AI生成的意图模型
-  acceptance_criteria: string // 验收标准
+  version: number
+  deadline: string | null
   created_at: string
   updated_at: string
-  deadline: string | null
 }
 
 /** 交付物 */
@@ -91,15 +117,22 @@ export interface AcceptanceDetail {
   comment: string
 }
 
-/** 交易记录 */
+/** 交易类型 — 与后端 TransactionType 对齐 */
+export type TransactionType = 'escrow' | 'payment' | 'refund' | 'bonus'
+
+/** 交易状态 — 与后端 TransactionStatus 对齐 */
+export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled'
+
+/** 交易记录 — 与后端 Transaction 模型对齐 */
 export interface Transaction {
   id: string
   contract_id: string
-  from_user_id: string
-  to_user_id: string
+  transaction_type: TransactionType
   amount: number
-  type: 'payment' | 'refund' | 'penalty'
-  status: 'pending' | 'completed' | 'failed'
+  from_user_id: string | null
+  to_user_id: string | null
+  commission: number
+  status: TransactionStatus
   created_at: string
 }
 

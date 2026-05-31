@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 import functools
+from collections import OrderedDict
 from typing import Callable, Optional
 
 import structlog
@@ -20,7 +21,32 @@ logger = structlog.get_logger("core.rate_limiter")
 # 内存降级存储
 # ============================================================
 
-_memory_store: dict[str, list[float]] = {}
+class BoundedMemoryStore:
+    """Memory store with max 10000 keys and LRU eviction to prevent unbounded growth."""
+
+    def __init__(self, max_keys: int = 10000):
+        self._store: OrderedDict[str, list[float]] = OrderedDict()
+        self._max_keys = max_keys
+
+    def get(self, key: str) -> list[float]:
+        return self._store.get(key, [])
+
+    def set(self, key: str, value: list[float]) -> None:
+        if key not in self._store and len(self._store) >= self._max_keys:
+            self._store.popitem(last=False)  # Remove oldest
+        self._store[key] = value
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._store
+
+    def __getitem__(self, key: str) -> list[float]:
+        return self._store[key]
+
+    def __setitem__(self, key: str, value: list[float]) -> None:
+        self.set(key, value)
+
+
+_memory_store = BoundedMemoryStore()
 
 
 def _cleanup_memory_key(key: str, window: float) -> int:
@@ -79,17 +105,20 @@ async def check_rate_limit(
     return count <= max_requests, count, remaining
 
 
-def _get_client_ip(request: Request) -> str:
-    """获取客户端真实 IP"""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip
-    if request.client:
-        return request.client.host
-    return "unknown"
+def _get_client_ip(request: Request, trusted_proxies: Optional[set[str]] = None) -> str:
+    """获取客户端真实 IP，仅信任已知代理的转发头"""
+    client_host = request.client.host if request.client else "unknown"
+
+    # Only trust proxy headers if we know the direct connection is from a trusted proxy
+    if trusted_proxies and client_host in trusted_proxies:
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip
+
+    return client_host
 
 
 # ============================================================

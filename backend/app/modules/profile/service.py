@@ -6,9 +6,11 @@
 from __future__ import annotations
 
 import base64
+import ipaddress
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
+from urllib.parse import urlparse
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +26,30 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
+def _validate_avatar_url(url: str) -> str:
+    """Validate avatar URL to prevent XSS and SSRF"""
+    parsed = urlparse(url)
+    # Only allow https and http schemes
+    if parsed.scheme not in ('https', 'http'):
+        raise ValueError('头像URL只支持http/https协议')
+    # Block javascript:, data:, file: schemes
+    if parsed.scheme in ('javascript', 'data', 'file'):
+        raise ValueError('不允许的URL协议')
+    # Block localhost/internal IPs to prevent SSRF
+    hostname = parsed.hostname or ''
+    if hostname in ('localhost', '127.0.0.1', '0.0.0.0', '::1'):
+        raise ValueError('不允许使用本地地址作为头像URL')
+    # Check for private/internal IP ranges
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_loopback or ip.is_link_local:
+            raise ValueError('不允许使用内网地址作为头像URL')
+    except ValueError:
+        # Not an IP address — check hostname patterns
+        if hostname.startswith('192.168.') or hostname.startswith('10.') or hostname.startswith('172.'):
+            raise ValueError('不允许使用内网地址作为头像URL')
+    return url
 
 async def get_user_by_id(db: AsyncSession, user_id: UUID) -> Optional[User]:
     """根据 ID 获取用户"""
@@ -64,7 +90,8 @@ async def upload_avatar(
     上传头像（支持 base64 或 URL）
     """
     if data.avatar_type == "url":
-        user.avatar = data.avatar_data
+        validated_url = _validate_avatar_url(data.avatar_data)
+        user.avatar = validated_url
     elif data.avatar_type == "base64":
         # 验证 base64 数据格式
         try:

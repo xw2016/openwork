@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import warnings
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -45,7 +46,10 @@ def create_access_token(
 ) -> str:
     """
     创建 JWT access token
-    :param data: 需要编码到 token 中的载荷（通常包含 sub=user_id）
+    :param data: 需要编码到 token 中的载荷
+                  通常包含 sub=user_id, role=user_role。
+                  传入 data 字典时应包含 'role' 键，例如:
+                      {"sub": user_id, "role": "admin"}
     :param expires_delta: 过期时间增量，默认使用配置值
     """
     to_encode = data.copy()
@@ -79,7 +83,12 @@ def decode_token(token: str) -> dict[str, Any]:
 
 # ============================================================
 # AES-256 加解密 (用于 real_name / id_card 等敏感字段)
+# ------------------------------------------------------------
+# NOTE: aes_encrypt / aes_decrypt 使用 AES-CBC 模式，缺少完整性校验。
+# 已标记为 DEPRECATED — 请迁移至 encryption.encrypt_field / decrypt_field
+# （AES-GCM，带认证加密）。CBC 函数保留仅供旧数据解密使用。
 # ============================================================
+
 
 def _get_aes_key() -> bytes:
     """从配置的十六进制密钥派生 32 字节 AES 密钥"""
@@ -88,16 +97,25 @@ def _get_aes_key() -> bytes:
 
 def aes_encrypt(plaintext: str) -> str:
     """
-    AES-256-CBC 加密，返回 Base64 编码字符串
-    使用 PKCS7 填充，随机 IV 拼接在密文前
+    DEPRECATED: AES-256-CBC 加密（无认证）。
+    请迁移至 encryption.encrypt_field()（AES-GCM）。
+    返回 Base64 编码字符串，随机 IV 拼接在密文前。
     """
+    warnings.warn(
+        "aes_encrypt uses AES-CBC without authentication and is deprecated. "
+        "Use encryption.encrypt_field (AES-GCM) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         from Crypto.Cipher import AES
         from Crypto.Util.Padding import pad
         import os
     except ImportError:
-        # 如果 pycryptodome 未安装，返回原文（开发模式降级）
-        return plaintext
+        raise RuntimeError(
+            "pycryptodome is required for AES encryption. "
+            "Install it with: pip install pycryptodome"
+        )
 
     key = _get_aes_key()
     iv = os.urandom(16)
@@ -108,13 +126,24 @@ def aes_encrypt(plaintext: str) -> str:
 
 def aes_decrypt(ciphertext: str) -> str:
     """
-    AES-256-CBC 解密，输入 Base64 编码字符串
+    DEPRECATED: AES-256-CBC 解密（无认证）。
+    请迁移至 encryption.decrypt_field()（AES-GCM）。
+    输入 Base64 编码字符串。
     """
+    warnings.warn(
+        "aes_decrypt uses AES-CBC without authentication and is deprecated. "
+        "Use encryption.decrypt_field (AES-GCM) instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     try:
         from Crypto.Cipher import AES
         from Crypto.Util.Padding import unpad
     except ImportError:
-        return ciphertext
+        raise RuntimeError(
+            "pycryptodome is required for AES decryption. "
+            "Install it with: pip install pycryptodome"
+        )
 
     key = _get_aes_key()
     raw = base64.b64decode(ciphertext)
