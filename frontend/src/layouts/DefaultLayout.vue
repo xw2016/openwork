@@ -151,9 +151,9 @@ const activeKey = computed(() => route.path)
         <NDropdown :options="userDropdownOptions" @select="handleUserDropdown">
           <NSpace align="center" :size="6" style="cursor: pointer">
             <NAvatar :size="28" round>
-              {{ userStore.userInfo?.username?.charAt(0)?.toUpperCase() || '?' }}
+              {{ userStore.userInfo?.nickname?.charAt(0)?.toUpperCase() || '?' }}
             </NAvatar>
-            <NText v-if="!isMobile">{{ userStore.userInfo?.username || '用户' }}</NText>
+            <NText v-if="!isMobile">{{ userStore.userInfo?.nickname || '用户' }}</NText>
           </NSpace>
         </NDropdown>
       </NSpace>

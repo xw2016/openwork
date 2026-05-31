@@ -23,19 +23,19 @@ const message = useMessage()
 
 const formRef = ref<FormInst | null>(null)
 const formData = ref({
-  username: '',
+  email: '',
   password: '',
 })
 
 const rules: FormRules = {
-  username: { required: true, message: '请输入用户名', trigger: 'blur' },
+  email: { required: true, message: '请输入邮箱', trigger: 'blur' },
   password: { required: true, message: '请输入密码', trigger: 'blur' },
 }
 
 async function handleLogin() {
   try {
     await formRef.value?.validate()
-    await userStore.login(formData.value.username, formData.value.password)
+    await userStore.login(formData.value.email, formData.value.password)
     message.success('登录成功')
     // 根据角色跳转
     if (userStore.isEmployer) {
@@ -55,8 +55,8 @@ async function handleLogin() {
   <div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f5">
     <NCard title="OpenWork 登录" style="width: 400px">
       <NForm ref="formRef" :model="formData" :rules="rules">
-        <NFormItem label="用户名" path="username">
-          <NInput v-model:value="formData.username" placeholder="请输入用户名">
+        <NFormItem label="邮箱" path="email">
+          <NInput v-model:value="formData.email" placeholder="请输入邮箱">
             <template #prefix>
               <NIcon :component="PersonOutline" />
             </template>

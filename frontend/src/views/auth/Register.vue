@@ -24,7 +24,7 @@ const message = useMessage()
 
 const formRef = ref<FormInst | null>(null)
 const formData = ref({
-  username: '',
+  nickname: '',
   email: '',
   password: '',
   confirmPassword: '',
@@ -32,14 +32,14 @@ const formData = ref({
 })
 
 const rules: FormRules = {
-  username: { required: true, message: '请输入用户名', trigger: 'blur' },
+  nickname: { required: true, message: '请输入昵称', trigger: 'blur' },
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6位', trigger: 'blur' },
+    { min: 8, message: '密码至少8位', trigger: 'blur' },
   ],
   confirmPassword: {
     required: true,
@@ -57,7 +57,7 @@ async function handleRegister() {
   try {
     await formRef.value?.validate()
     await userStore.register(
-      formData.value.username,
+      formData.value.nickname,
       formData.value.email,
       formData.value.password,
       formData.value.role
@@ -82,8 +82,8 @@ async function handleRegister() {
             <NRadioButton value="freelancer">自由职业者</NRadioButton>
           </NRadioGroup>
         </NFormItem>
-        <NFormItem label="用户名" path="username">
-          <NInput v-model:value="formData.username" placeholder="请输入用户名" />
+        <NFormItem label="昵称" path="nickname">
+          <NInput v-model:value="formData.nickname" placeholder="请输入昵称" />
         </NFormItem>
         <NFormItem label="邮箱" path="email">
           <NInput v-model:value="formData.email" placeholder="请输入邮箱" />

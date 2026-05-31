@@ -39,7 +39,7 @@ class IntentBlueprint(Base):
     task_type: Mapped[str] = mapped_column(String(50), nullable=False)
     content: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     status: Mapped[BlueprintStatus] = mapped_column(
-        Enum(BlueprintStatus, name="blueprint_status_enum", create_constraint=True),
+        Enum(BlueprintStatus, name="blueprint_status_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         default=BlueprintStatus.DRAFT,
         nullable=False,
         index=True,

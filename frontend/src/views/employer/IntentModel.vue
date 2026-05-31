@@ -91,12 +91,13 @@ async function handleAnalyze() {
   }
   analyzeLoading.value = true
   try {
-    const { data } = await analyzeIntent({
-      description: description.value.trim(),
-      category: category.value || undefined,
+    const { data: res } = await analyzeIntent({
+      user_input: description.value.trim(),
+      context: category.value ? { category: category.value } : undefined,
     })
-    analysisResult.value = data
-    questions.value = data.questions || []
+    const result = (res as any).data ?? res
+    analysisResult.value = result
+    questions.value = result.questions || []
     currentQuestionIndex.value = 0
     currentStep.value = 2
     message.success('AI 分析完成')
@@ -179,8 +180,8 @@ async function saveBlueprintAndPreview() {
     const blueprintId = analysisResult.value?.blueprint_id
     if (blueprintId) {
       // 获取最新的蓝图
-      const { data } = await getBlueprint(blueprintId)
-      blueprint.value = data
+      const { data: res } = await getBlueprint(blueprintId)
+      blueprint.value = (res as any).data ?? res
     }
     currentStep.value = 4
   } catch (err: any) {
@@ -219,15 +220,16 @@ async function handleCreateContract() {
   if (!blueprint.value) return
 
   try {
-    const { data } = await createContract({
+    const { data: res } = await createContract({
       title: blueprint.value.title,
       description: blueprint.value.description,
       budget: budget.value || 0,
       intent_model: blueprint.value.id,
       acceptance_criteria: blueprint.value.acceptance_criteria,
     })
+    const contractData = (res as any).data ?? res
     message.success('合约创建成功')
-    router.push(`/employer/deliverables/${data.id}`)
+    router.push(`/employer/deliverables/${contractData.id}`)
   } catch (err: any) {
     message.error(err?.response?.data?.detail || '创建合约失败')
   }
@@ -238,9 +240,10 @@ onMounted(async () => {
   if (existingBlueprintId.value) {
     blueprintLoading.value = true
     try {
-      const { data } = await getBlueprint(existingBlueprintId.value)
-      blueprint.value = data
-      if (data.status === 'locked') {
+      const { data: res } = await getBlueprint(existingBlueprintId.value)
+      const bp = (res as any).data ?? res
+      blueprint.value = bp
+      if (bp.status === 'locked') {
         locked.value = true
         currentStep.value = 5
       } else {

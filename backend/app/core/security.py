@@ -13,26 +13,32 @@ import warnings
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
+import bcrypt as _bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 
 # ============================================================
-# 密码哈希
+# 密码哈希 (直接使用 bcrypt，绕过 passlib 兼容性问题)
 # ============================================================
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _truncate_to_72_bytes(password: str) -> bytes:
+    """截断密码到 72 字节（bcrypt 限制），返回 bytes"""
+    encoded = password.encode("utf-8")
+    if len(encoded) <= 72:
+        return encoded
+    return encoded[:72]
 
 
 def hash_password(password: str) -> str:
-    """对明文密码进行 bcrypt 哈希"""
-    return pwd_context.hash(password)
+    """对明文密码进行 bcrypt 哈希（自动截断到 72 字节）"""
+    return _bcrypt.hashpw(_truncate_to_72_bytes(password), _bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证明文密码与哈希是否匹配"""
-    return pwd_context.verify(plain_password, hashed_password)
+    return _bcrypt.checkpw(_truncate_to_72_bytes(plain_password), hashed_password.encode("utf-8"))
 
 
 # ============================================================

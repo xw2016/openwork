@@ -43,12 +43,24 @@ class Settings(BaseSettings):
     # ---------- Redis ----------
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # ---------- 密钥 ----------
-    SECRET_KEY: str  # required – no default
-    AES_SECRET_KEY: str  # required – no default
-
     # ---------- CORS ----------
     CORS_ORIGINS: List[str] = ["*"]
+
+    # ---------- 安全 ----------
+    SECRET_KEY: str  # required – no default
+    AES_SECRET_KEY: str  # required – no default
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # ---------- 安全限流 ----------
+    RATE_LIMIT_PER_MINUTE: int = 60
+    RATE_LIMIT_LOGIN_PER_MINUTE: int = 5
+    REQUEST_MAX_SIZE_MB: int = 10
+
+    # ---------- 管理员初始化 ----------
+    ADMIN_PHONE: str  # required – no default
+    ADMIN_PASSWORD: str  # required – no default
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -70,15 +82,6 @@ class Settings(BaseSettings):
                 "(e.g. `openssl rand -hex 32`)"
             )
         return v
-
-    # ---------- 安全限流 ----------
-    RATE_LIMIT_PER_MINUTE: int = 60
-    RATE_LIMIT_LOGIN_PER_MINUTE: int = 5
-    REQUEST_MAX_SIZE_MB: int = 10
-
-    # ---------- 管理员初始化 ----------
-    ADMIN_PHONE: str  # required – no default
-    ADMIN_PASSWORD: str  # required – no default
 
 
 settings = Settings()

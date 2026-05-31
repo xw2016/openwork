@@ -36,7 +36,7 @@ class AcceptanceRecord(Base):
     submit_version: Mapped[int] = mapped_column(Integer, nullable=False)
     acceptance_report: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     result: Mapped[AcceptanceResult] = mapped_column(
-        Enum(AcceptanceResult, name="acceptance_result_enum", create_constraint=True),
+        Enum(AcceptanceResult, name="acceptance_result_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
     settlement_triggered: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

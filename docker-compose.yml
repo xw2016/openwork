@@ -31,6 +31,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      no_proxy: "*"
+      NO_PROXY: "*"
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       AES_SECRET_KEY: ${AES_SECRET_KEY:?AES_SECRET_KEY is required}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-openwork}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-openwork}
@@ -52,11 +54,14 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - "${HOST_PORT:-80}:80"
+    environment:
+      no_proxy: "*"
+      NO_PROXY: "*"
     depends_on:
       backend:
         condition: service_healthy

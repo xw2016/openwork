@@ -12,17 +12,19 @@ export const useUserStore = defineStore('user', () => {
 
   // 计算属性
   const isLoggedIn = computed(() => !!token.value)
-  const userRole = computed(() => userInfo.value?.role || null)
+  const userRole = computed(() => userInfo.value?.user_type || null)
   const isEmployer = computed(() => userRole.value === 'employer')
   const isFreelancer = computed(() => userRole.value === 'freelancer')
 
   // 登录
-  async function login(username: string, password: string) {
+  async function login(email: string, password: string) {
     loading.value = true
     try {
-      const { data } = await loginApi({ username, password })
-      token.value = data.access_token
-      localStorage.setItem('token', data.access_token)
+      const { data: res } = await loginApi({ email, password })
+      // 后端返回 {code, message, data: {access_token, refresh_token, ...}}
+      const tokenData = res.data ?? res
+      token.value = tokenData.access_token
+      localStorage.setItem('token', tokenData.access_token)
       // 登录成功后获取用户信息
       await fetchUser()
     } finally {
@@ -31,10 +33,10 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // 注册
-  async function register(username: string, email: string, password: string, role: UserRole) {
+  async function register(nickname: string, email: string, password: string, user_type: UserRole) {
     loading.value = true
     try {
-      await registerApi({ username, email, password, role })
+      await registerApi({ nickname, email, password, user_type })
     } finally {
       loading.value = false
     }
@@ -44,8 +46,9 @@ export const useUserStore = defineStore('user', () => {
   async function fetchUser() {
     if (!token.value) return
     try {
-      const { data } = await getMe()
-      userInfo.value = data
+      const { data: res } = await getMe()
+      // 后端返回 {code, message, data}，实际用户在 res.data 里
+      userInfo.value = res.data ?? res
     } catch {
       // token 无效则清除
       logout()

@@ -23,9 +23,18 @@ http.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// 响应拦截器：处理 401 未授权
+// 响应拦截器：解包 {code, message, data} + 处理 401
 http.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    // 后端统一返回 {code, message, data}，自动解包
+    const body = response.data
+    if (body && typeof body === 'object' && 'code' in body && 'data' in body) {
+      response.data = body.data
+      // 保留原始 code 和 message 以备需要
+      ;(response as any)._raw = body
+    }
+    return response
+  },
   (error) => {
     if (error.response?.status === 401) {
       // 清除本地 token 并跳转登录页

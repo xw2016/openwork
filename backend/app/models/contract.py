@@ -59,7 +59,7 @@ class Contract(Base):
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     task_type: Mapped[TaskType] = mapped_column(
-        Enum(TaskType, name="task_type_enum", create_constraint=True),
+        Enum(TaskType, name="task_type_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
     intent_blueprint: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
@@ -80,7 +80,7 @@ class Contract(Base):
     )
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     status: Mapped[ContractStatus] = mapped_column(
-        Enum(ContractStatus, name="contract_status_enum", create_constraint=True),
+        Enum(ContractStatus, name="contract_status_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         default=ContractStatus.DRAFT,
         nullable=False,
         index=True,

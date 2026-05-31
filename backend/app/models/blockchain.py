@@ -38,7 +38,7 @@ class BlockchainRecord(Base):
         UUID(as_uuid=True), nullable=False, index=True
     )
     node_type: Mapped[NodeType] = mapped_column(
-        Enum(NodeType, name="node_type_enum", create_constraint=True),
+        Enum(NodeType, name="node_type_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         index=True,
     )

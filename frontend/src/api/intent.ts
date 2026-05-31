@@ -3,8 +3,8 @@ import http from './index'
 
 /** 意图分析请求 */
 export interface IntentAnalyzeRequest {
-  description: string
-  category?: string
+  user_input: string
+  context?: Record<string, any>
 }
 
 /** 意图分析响应 */

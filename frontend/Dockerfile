@@ -13,10 +13,7 @@ RUN if [ -f pnpm-lock.yaml ]; then \
     fi
 
 COPY . .
-RUN if [ -f pnpm-lock.yaml ]; then pnpm build; \
-    elif [ -f yarn.lock ]; then yarn build; \
-    else npm run build; \
-    fi
+RUN npm run build || npx vite build
 
 # ---- Runtime stage ----
 FROM nginx:stable-alpine

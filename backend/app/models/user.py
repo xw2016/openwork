@@ -40,7 +40,7 @@ class User(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     user_type: Mapped[UserType] = mapped_column(
-        Enum(UserType, name="user_type_enum", create_constraint=True),
+        Enum(UserType, name="user_type_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         default=UserType.FREELANCER,
         nullable=False,
     )
@@ -59,7 +59,7 @@ class User(Base):
     credit_score: Mapped[int] = mapped_column(Integer, default=600, nullable=False)
     credit_detail: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     status: Mapped[UserStatus] = mapped_column(
-        Enum(UserStatus, name="user_status_enum", create_constraint=True),
+        Enum(UserStatus, name="user_status_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         default=UserStatus.ACTIVE,
         nullable=False,
         index=True,

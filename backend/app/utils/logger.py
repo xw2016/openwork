@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import structlog
 
 
@@ -19,7 +21,7 @@ def setup_logging() -> None:
             structlog.processors.JSONRenderer(ensure_ascii=False),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(
-            structlog.stdlib.INFO
+            logging.INFO
         ),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),

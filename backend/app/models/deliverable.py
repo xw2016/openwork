@@ -48,7 +48,7 @@ class Deliverable(Base):
     )
     acceptance_result: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     acceptance_status: Mapped[AcceptanceStatus] = mapped_column(
-        Enum(AcceptanceStatus, name="acceptance_status_enum", create_constraint=True),
+        Enum(AcceptanceStatus, name="acceptance_status_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         default=AcceptanceStatus.NOT_SUBMITTED,
         nullable=False,
         index=True,

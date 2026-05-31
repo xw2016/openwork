@@ -46,7 +46,7 @@ class Transaction(Base):
         UUID(as_uuid=True), nullable=False, index=True
     )
     transaction_type: Mapped[TransactionType] = mapped_column(
-        Enum(TransactionType, name="transaction_type_enum", create_constraint=True),
+        Enum(TransactionType, name="transaction_type_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
@@ -60,7 +60,7 @@ class Transaction(Base):
         Numeric(12, 2), default=Decimal("0.00"), nullable=False
     )
     status: Mapped[TransactionStatus] = mapped_column(
-        Enum(TransactionStatus, name="transaction_status_enum", create_constraint=True),
+        Enum(TransactionStatus, name="transaction_status_enum", create_constraint=True, values_callable=lambda x: [e.value for e in x]),
         default=TransactionStatus.PENDING,
         nullable=False,
         index=True,
