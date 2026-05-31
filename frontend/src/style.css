@@ -294,3 +294,286 @@ code {
     border-right-color: var(--border);
   }
 }
+
+/* ====================================================
+   Mobile Responsive Styles (max-width: 768px)
+   ==================================================== */
+
+/* Layout: sidebar hidden on mobile, main content full-width */
+@media (max-width: 768px) {
+  /* Sidebar toggle */
+  .layout-sidebar {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    bottom: 0;
+    width: 260px;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    box-shadow: none;
+  }
+
+  .layout-sidebar.open {
+    left: 0;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Sidebar overlay */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+  }
+
+  /* Main content */
+  .layout-content {
+    margin-left: 0 !important;
+    padding: 16px 12px !important;
+    width: 100% !important;
+  }
+
+  /* Hamburger menu button */
+  .mobile-menu-btn {
+    display: flex !important;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1001;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Naive UI Grid: stack columns on mobile */
+  .n-grid {
+    --n-cols: 1 !important;
+  }
+
+  .n-grid > .n-grid-item {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Override NGrid inline styles for responsive */
+  [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Naive UI Card adjustments */
+  .n-card {
+    margin-bottom: 12px;
+  }
+
+  .n-card__content {
+    padding: 12px !important;
+  }
+
+  .n-card__header {
+    padding: 12px !important;
+    font-size: 15px !important;
+  }
+
+  /* Tables: horizontal scroll */
+  .n-data-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .n-data-table .n-data-table-table {
+    min-width: 500px;
+  }
+
+  .n-data-table .n-data-table-td,
+  .n-data-table .n-data-table-th {
+    white-space: nowrap;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+
+  /* NDescriptions: stack on mobile */
+  .n-descriptions .n-descriptions-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .n-descriptions .n-descriptions-table-wrapper table {
+    min-width: 100%;
+  }
+
+  .n-descriptions .n-descriptions-cell {
+    padding: 8px 10px !important;
+  }
+
+  /* NList adjustments */
+  .n-list-item {
+    padding: 10px 12px !important;
+  }
+
+  /* NProgress circle: smaller on mobile */
+  .n-progress.n-progress--circle {
+    transform: scale(0.85);
+  }
+
+  /* Buttons: full width on mobile for primary actions */
+  .n-space {
+    flex-wrap: wrap;
+  }
+
+  .n-space > .n-button {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* NH2: smaller on mobile */
+  h2, .n-h {
+    font-size: 20px !important;
+    margin: 16px 0 12px !important;
+  }
+
+  /* Upload area */
+  .n-upload-file-list {
+    font-size: 13px;
+  }
+
+  .n-upload-trigger .n-button {
+    width: 100%;
+  }
+
+  /* NStatistic adjustments */
+  .n-statistic .n-statistic-value__content {
+    font-size: 28px !important;
+  }
+
+  .n-statistic .n-statistic__label {
+    font-size: 12px !important;
+  }
+
+  /* NTimeline */
+  .n-timeline .n-timeline-item {
+    padding-bottom: 12px;
+  }
+
+  /* NModal on mobile: full width */
+  .n-modal {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 0 auto;
+  }
+
+  /* NAlert adjustments */
+  .n-alert {
+    font-size: 13px;
+  }
+
+  /* Collapse adjustments */
+  .n-collapse .n-collapse-item__header {
+    padding: 10px 12px !important;
+    font-size: 14px;
+  }
+
+  .n-collapse .n-collapse-item__content-wrapper .n-collapse-item__content-inner {
+    padding: 8px 12px !important;
+  }
+
+  /* Pagination */
+  .n-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .n-pagination .n-pagination-item {
+    min-width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  /* Page-level containers */
+  .upload-page,
+  .acceptance-page,
+  .report-page,
+  .credit-page {
+    padding: 0 8px;
+  }
+
+  /* NSpace responsive */
+  .n-space.n-space--vertical {
+    gap: 8px !important;
+  }
+
+  /* NH2 with depth text */
+  .n-h .n-text {
+    display: block;
+    margin-left: 0 !important;
+    margin-top: 4px;
+  }
+}
+
+/* Medium breakpoint (tablet) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .layout-sidebar {
+    width: 200px;
+  }
+
+  .layout-content {
+    margin-left: 200px !important;
+  }
+
+  .n-grid > .n-grid-item {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+  }
+}
+
+/* Desktop: hide hamburger */
+@media (min-width: 769px) {
+  .mobile-menu-btn {
+    display: none !important;
+  }
+}
+
+/* Small phone (max-width: 480px) */
+@media (max-width: 480px) {
+  :root {
+    font-size: 14px;
+  }
+
+  h2, .n-h {
+    font-size: 18px !important;
+  }
+
+  .n-card {
+    border-radius: 8px;
+  }
+
+  .n-card__content {
+    padding: 10px !important;
+  }
+
+  /* NProgress circle even smaller */
+  .n-progress.n-progress--circle {
+    transform: scale(0.75);
+  }
+
+  /* Statistics grid: single column */
+  .n-grid {
+    gap: 8px !important;
+  }
+
+  /* Buttons */
+  .n-button {
+    font-size: 13px;
+  }
+
+  .n-space .n-space .n-button {
+    width: 100%;
+  }
+}
